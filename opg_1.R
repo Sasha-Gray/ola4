@@ -25,6 +25,18 @@ rawres <- GET(
 
 rawres$status_code  # tjek at koden er 200 = OK
 
+# Trin 2.1 Gem cookies i et objekt:
+  mycookies <- cookies(rawres)
+
+# Trin 2.2 Nyt kald hvor cookies sendes med
+rawres <- GET(
+  url = startlink,
+  add_headers(
+    "User-Agent" = "Mozilla/5.0"
+  ),
+  set_cookies(bbtracker = "id=3b1662ac-e8e8-4895-a8ed-310e8cf6faf4")
+)
+
 # Trin 3 - Konverter HTML-indholdet til tekst og lav tekstindholdet om til HTML, som kan scrapes:
 rawcontent <- httr::content(rawres, as = "text")   # Pakker HTML’en ud af HTTP-svaret og gør den til en ren tekststreng
 

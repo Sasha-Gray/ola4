@@ -66,6 +66,67 @@
 # DEFAULT FALSE betyder at hvis ikke jeg fortlæller hvad der skal stå i denne kolonne, så får den værdien FALSE.
 
 #
+# Man kan også lave og redigere tabellerne i MySQL direkte i R-Studio.
+#
+
+# Trin 1 - Indlæs nødvendigt pakker:
+  library(DBI)
+library(RMariaDB)
+
+# Trin 2 – Lav forbindelse mellem SQL og R:
+  con <- dbConnect(
+    MariaDB(),
+    user = "root",
+    password = "***",
+    host = "localhost",
+    port = 3306)
+
+# Trin 3 – Opret databasen:
+  dbExecute(con, "CREATE DATABASE IF NOT EXISTS bilbasen;")
+
+# Trin 4 – Brug den nye database:
+  dbExecute(con, "USE bilbasen;")
+
+# Trin 5 – Opret tabellerne i bilbasen
+# Trin 5.1 – Opret dealer-tabellen (invariant):
+  dbExecute(con, "
+CREATE TABLE IF NOT EXISTS dealer (
+    dealer_id       VARCHAR(20) PRIMARY KEY,
+    dealer_name     VARCHAR(255),
+    dealer_address  VARCHAR(255),
+    dealer_cvr      VARCHAR(20) ); ")
+
+# Trin 5.2 – Opret car-tabellen (invariant, grunddata):
+  dbExecute(con, "
+CREATE TABLE IF NOT EXISTS car (
+    carid       VARCHAR(20) PRIMARY KEY,
+    model       VARCHAR(100),
+    year        DATE,
+    loc         VARCHAR(255),
+    link        VARCHAR(255),
+    dealer_id   VARCHAR(20),
+    FOREIGN KEY (dealer_id) REFERENCES dealer(dealer_id) ); ")
+
+# Trin 5.3 – Opret car_observation-tabellen (varierende data):
+  dbExecute(con, "
+CREATE TABLE IF NOT EXISTS car_observation (
+    observation_id INT AUTO_INCREMENT PRIMARY KEY,
+    carid          VARCHAR(20),
+    scrapedate     DATE,
+    price          INT,
+    km             INT,
+    description    TEXT,
+    sold           BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (carid) REFERENCES car(carid) ); ")
+
+# Trin 6 – Tjek tabellerne fra R:
+  dbListTables(con)
+
+# Trin 7- Luk forbindelsen:
+  dbDisconnect(con)
+
+
+#
 # Opgave 2.2 – Gemme bilerne i database
 #
 # I skal nu gemme jeres første scrape-resultat i jeres database.
@@ -81,7 +142,7 @@ library(RMariaDB)
 con <- dbConnect(
   MariaDB(),
   user = "root",
-  password = "din_kode",
+  password = "***",
   dbname = "bilbasen",
   host = "localhost",
   port = 3306)

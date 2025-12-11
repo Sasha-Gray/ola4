@@ -38,7 +38,7 @@ safeGET <- function(url, token, max_tries = 5) {
 options(scipen = 999)
 
 #
-# Vi har hentet fly d. 13. nov. 2025.
+# Vi har hentet fly d. 11. dec. 2025.
 #
 # Trin 1 - Henter relevante pakker:
 library(jsonlite)
@@ -48,7 +48,7 @@ library(ggplot2)
 library(dplyr)
 
 # Trin 2 - Henvis til min anden R-fil som indeholder min adgang til OpenSky API:
-source("util.R")
+source("util.r")
 
 # Trin 3 - Definér OpenSky-endpoint og Nordsø-bounding-box:
 baseurl  <- "https://opensky-network.org/api"   # Forsiden til API'et. Alle kald starter med denne adresse.
@@ -119,7 +119,7 @@ ggplot(country_counts,
   coord_flip() +
   labs(
     title = "Storbritannien står for størstedelen af flytrafikken over Nordsøen",
-    subtitle = "Snapshot hentet d. 13. november 2025",
+    subtitle = "Snapshot hentet d. 11. december 2025",
     x = "Land",
     y = "Antal fly",
     caption = "Kilde: OpenSky API")+
@@ -157,7 +157,9 @@ turl <- paste0(baseurl, endpoint_t,
                "?icao24=", icao_ny,
                "&time=0")   # time = 0 betyder "seneste tilgængelige track"
 
-res_track <- safeGET(turl, token)
+res_track <- GET(turl, add_headers(Authorization = 
+                                     paste("Bearer", token)))
+
 res_track$status_code   # statuskoden viser 200 = OK
 
 # Trin 5 - Omdan track-data til dataframe.
@@ -421,7 +423,7 @@ resultater_comb <- rbind(resultater, resultater_circ)
 ggplot(resultater_comb, aes(x = sd_crs, y = r2, color = type)) +
   geom_point(size = 3) +
   labs(
-    title = "SD(crs) og R² for normale vs. cirklende fly",
+    title = "Cirkulerende fly identificeres tydeligt ved højere standardafvigelse i kurs",
     x = "Standardafvigelse i kurs (crs)",
     y = "R² fra lm(lat ~ lng)",
     caption = "Kilde: OpenSky API og træningsdata (.rds)",
@@ -438,6 +440,7 @@ samlet_gns <- resultater_comb %>%
     mean_r2  = mean(r2, na.rm = TRUE),
     n = n()
   )
+
 
 #
 # Opgave 3.4 – Aim high - jeres egen algoritme
@@ -604,4 +607,33 @@ final_mid_df$facit <- ifelse(final_mid_df$type == "Cirklende", 1, 0)
 # Trin 14 - Fjerne 'type'-kolonne da den ikke er relevnt mere da vi har 'facit':
 final_mid_df$type <- NULL
 
+# Trin 15 - Vis hvor meget i procent, den tager fejl og har ret
+# Trin 15.1 - Beregn accuracy og error rate
+accuracy <- mean(final_mid_df$MyAlg == final_mid_df$facit)
+error_rate <- 1 - accuracy
 
+# Trin 15.2 - Lav dataframe til at plotte:
+plot_df <- data.frame(
+  kategori = c("Rigtige", "Fejl"),
+  procent = c(accuracy * 100, -error_rate * 100)
+)
+
+# Trin 15.3 - Lav søjlediagram:
+
+ggplot(plot_df, aes(x = kategori, y = procent, fill = kategori)) +
+  geom_col(width = 0.6) +
+  geom_hline(yintercept = 0, color = "black") +
+  scale_fill_manual(values = c("Rigtige" = "#2E8B57", "Fejl" = "#B22222")) +
+  labs(
+    title = "Algoritmen rammer rigtigt i langt de fleste tilfælde",
+    subtitle ="Negativ søjle = fejlprocent",
+    x = "",
+    y = "Procent",
+    caption = "Kilde: OpenSky API og træningsdata (.rds)"
+  ) +
+  scale_y_continuous(labels = function(x) paste0(abs(x), "%")) +
+  theme_minimal() +
+  theme(
+    legend.position = "none",
+    plot.caption = element_text(hjust = 0)
+  )
